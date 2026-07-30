@@ -1,0 +1,979 @@
+openapi: "3.0.3"
+info:
+  title: KnowFlow — 智能学习助手平台 API
+  description: |
+    KnowFlow 是一个基于 Spring AI 2.0 与 RAG（检索增强生成）技术的全栈智能学习助手平台。
+    本 API 文档定义了 KnowFlow 后端所有 RESTful 接口规范。
+
+    ### 核心功能
+    - **用户管理**：注册、登录、个人信息获取
+    - **智能对话**：多轮连续对话、SSE 流式输出、对话历史管理
+    - **RAG 知识库**：文档上传解析、基于知识库的精准问答、文档管理
+
+    ### 通用约定
+    | 规范项 | 约定 |
+    |:---|:---|
+    | 基础路径 | `/api` |
+    | 请求体格式 | `application/json`（文件上传除外） |
+    | 响应格式 | 统一 `ApiResponse<T>` 结构 |
+    | 鉴权方式 | Bearer Token（JWT） |
+    | 流式传输 | `text/event-stream`（SSE） |
+  version: "1.0.0"
+  contact:
+    name: KnowFlow Team
+    url: https://github.com/cloudtheon/knowflow
+
+servers:
+  - url: http://localhost:8080/api
+    description: 本地开发环境
+  - url: https://api.knowflow.dev/api
+    description: 生产环境
+
+# =====================================================================
+# 全局组件
+# =====================================================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 登录成功后获取 JWT Token，以 `Bearer <token>` 格式放入请求头
+
+  schemas:
+    # ---------- 统一响应结构 ----------
+    ApiResponse:
+      type: object
+      description: 统一 API 响应包装
+      properties:
+        code:
+          type: integer
+          description: 业务状态码（200 成功，400 参数错误，401 未授权，403 无权限，404 资源不存在，409 资源冲突，500 服务器错误）
+          example: 200
+        message:
+          type: string
+          description: 响应消息
+          example: "success"
+        data:
+          type: object
+          description: 响应数据（具体结构见各接口定义）
+      required:
+        - code
+        - message
+        - data
+
+    # ---------- 分页响应 ----------
+    PaginatedData:
+      type: object
+      description: 分页数据包装
+      properties:
+        records:
+          type: array
+          description: 当前页数据列表
+          items:
+            type: object
+        total:
+          type: integer
+          description: 总记录数
+          example: 100
+        page:
+          type: integer
+          description: 当前页码
+          example: 1
+        pageSize:
+          type: integer
+          description: 每页记录数
+          example: 20
+      required:
+        - records
+        - total
+        - page
+        - pageSize
+
+    # ---------- 用户相关 ----------
+    UserInfo:
+      type: object
+      description: 用户基本信息
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 用户 ID
+          example: 1
+        username:
+          type: string
+          description: 用户名
+          example: "zhangsan"
+        avatar:
+          type: string
+          description: 头像 URL
+          example: "https://example.com/avatar.png"
+      required:
+        - id
+        - username
+
+    LoginRequest:
+      type: object
+      description: 登录请求
+      properties:
+        username:
+          type: string
+          description: 用户名
+          example: "zhangsan"
+        password:
+          type: string
+          description: 密码
+          example: "password123"
+      required:
+        - username
+        - password
+
+    RegisterRequest:
+      type: object
+      description: 注册请求
+      properties:
+        username:
+          type: string
+          description: 用户名（3~50 字符，字母/数字/下划线）
+          example: "zhangsan"
+        password:
+          type: string
+          description: 密码（6~100 字符）
+          example: "password123"
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      description: 登录/注册响应数据
+      properties:
+        token:
+          type: string
+          description: JWT Token
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        user:
+          $ref: "#/components/schemas/UserInfo"
+      required:
+        - token
+        - user
+
+    # ---------- 对话相关 ----------
+    Conversation:
+      type: object
+      description: 对话概要信息
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 对话 ID
+          example: 1
+        title:
+          type: string
+          description: 对话标题
+          example: "Java 并发编程问题"
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+          example: "2026-07-30T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最后更新时间
+          example: "2026-07-30T11:30:00Z"
+      required:
+        - id
+        - createdAt
+        - updatedAt
+
+    ChatMessage:
+      type: object
+      description: 对话消息
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 消息 ID
+          example: 1
+        role:
+          type: string
+          description: 角色（user=用户, assistant=AI）
+          enum:
+            - user
+            - assistant
+          example: "user"
+        content:
+          type: string
+          description: 消息内容
+          example: "请解释 Java 中的 volatile 关键字"
+        createdAt:
+          type: string
+          format: date-time
+          description: 发送时间
+          example: "2026-07-30T10:00:00Z"
+      required:
+        - role
+        - content
+
+    SendMessageRequest:
+      type: object
+      description: 发送消息请求
+      properties:
+        conversationId:
+          type: integer
+          format: int64
+          nullable: true
+          description: "对话 ID（null=新建对话，非 null=续接已有对话）"
+          example: 1
+        content:
+          type: string
+          description: 用户消息内容
+          example: "请解释 Java 中的 volatile 关键字"
+      required:
+        - content
+
+    StreamQueryParams:
+      type: object
+      description: SSE 流式对话查询参数
+      properties:
+        conversationId:
+          type: integer
+          format: int64
+          nullable: true
+          description: "对话 ID（null=新建对话，非 null=续接已有对话）"
+          example: 1
+        content:
+          type: string
+          description: 用户消息内容
+          example: "请解释 Java 中的 volatile 关键字"
+      required:
+        - content
+
+    # ---------- SSE 事件 ----------
+    SseTokenEvent:
+      type: object
+      description: SSE token 事件数据（AI 输出片段）
+      properties:
+        content:
+          type: string
+          description: AI 输出文本片段
+          example: "volatile 是 Java 提供的一种轻量级同步机制..."
+      required:
+        - content
+
+    SseDoneEvent:
+      type: object
+      description: SSE done 事件数据（回复结束）
+      properties:
+        conversationId:
+          type: integer
+          format: int64
+          description: 对话 ID
+          example: 1
+      required:
+        - conversationId
+
+    SseErrorEvent:
+      type: object
+      description: SSE error 事件数据（错误信息）
+      properties:
+        message:
+          type: string
+          description: 错误描述
+          example: "AI 服务暂时不可用，请稍后重试"
+      required:
+        - message
+
+    # ---------- 知识库相关 ----------
+    KnowledgeDocument:
+      type: object
+      description: 知识库文档
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 文档 ID
+          example: 1
+        title:
+          type: string
+          nullable: true
+          description: 文档标题
+          example: "Spring AI 入门指南"
+        fileName:
+          type: string
+          description: 原始文件名
+          example: "spring-ai-guide.pdf"
+        fileType:
+          type: string
+          description: "文件类型（pdf/md）"
+          example: "pdf"
+        fileSize:
+          type: integer
+          format: int64
+          description: 文件大小（字节）
+          example: 2048576
+        status:
+          type: string
+          description: "处理状态（processing=处理中, ready=已就绪, failed=处理失败）"
+          enum:
+            - processing
+            - ready
+            - failed
+          example: "ready"
+        errorMsg:
+          type: string
+          nullable: true
+          description: 处理失败原因
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          description: 上传时间
+          example: "2026-07-30T10:00:00Z"
+      required:
+        - id
+        - fileName
+        - fileType
+        - fileSize
+        - status
+        - createdAt
+
+    # ---------- 错误响应 ----------
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      properties:
+        code:
+          type: integer
+          description: 业务状态码
+          example: 400
+        message:
+          type: string
+          description: 错误描述
+          example: "用户名已存在"
+        data:
+          type: object
+          nullable: true
+          description: 错误详情（可选）
+          example: null
+      required:
+        - code
+        - message
+        - data
+
+# =====================================================================
+# 路径定义
+# =====================================================================
+paths:
+  # ==================== 认证模块 ====================
+  /auth/register:
+    post:
+      tags:
+        - 01-用户认证
+      summary: 用户注册
+      description: "创建新用户。注册成功后自动返回 JWT Token，前端可跳转至聊天页。\n\n**注意事项**：\n- 用户名必须唯一\n- 密码需经过 BCrypt 加密后存储"
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            example:
+              username: "zhangsan"
+              password: "password123"
+      responses:
+        "200":
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponse"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  token: "eyJhbGciOiJIUzI1NiIs..."
+                  user:
+                    id: 1
+                    username: "zhangsan"
+                    avatar: null
+        "409":
+          description: 用户名已存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 409
+                message: "用户名已存在"
+                data: null
+
+  /auth/login:
+    post:
+      tags:
+        - 01-用户认证
+      summary: 用户登录
+      description: 使用用户名和密码登录，返回 JWT Token 和用户信息。Token 有效期默认为 7 天。
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              username: "zhangsan"
+              password: "password123"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponse"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  token: "eyJhbGciOiJIUzI1NiIs..."
+                  user:
+                    id: 1
+                    username: "zhangsan"
+                    avatar: null
+        "401":
+          description: 用户名或密码错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 401
+                message: "用户名或密码错误"
+                data: null
+
+  /auth/profile:
+    get:
+      tags:
+        - 01-用户认证
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的基本信息。需携带有效的 JWT Token。
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserInfo"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  id: 1
+                  username: "zhangsan"
+                  avatar: null
+        "401":
+          description: Token 无效或已过期
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 401
+                message: "未授权，请重新登录"
+                data: null
+
+  # ==================== 对话模块 ====================
+  /chat/send:
+    post:
+      tags:
+        - 02-智能对话
+      summary: 发送消息（非流式）
+      description: |
+        向 AI 发送一条消息并获取完整回复（非流式）。
+
+        - 若 `conversationId` 为 `null`，系统将自动创建新的对话
+        - 若 `conversationId` 不为 `null`，则续接已有对话（上下文保持）
+      operationId: sendChatMessage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+            example:
+              conversationId: 1
+              content: "请解释 Java 中的 volatile 关键字"
+      responses:
+        "200":
+          description: 发送成功，返回 AI 回复消息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ChatMessage"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  id: 10
+                  role: "assistant"
+                  content: "volatile 是 Java 提供的一种轻量级同步机制..."
+                  createdAt: "2026-07-30T10:00:05Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /chat/stream:
+    get:
+      tags:
+        - 02-智能对话
+      summary: SSE 流式对话
+      description: |
+        通过 Server-Sent Events（SSE）实现 AI 回复的流式输出。
+
+        **SSE 事件协议：**
+
+        | 事件名 | 说明 | 数据字段 |
+        |:---|:---|:---|
+        | `token` | AI 输出片段 | `{ content: string }` |
+        | `done` | 回复结束 | `{ conversationId: number }` |
+        | `error` | 错误信息 | `{ message: string }` |
+
+        **前端接入示例（JavaScript）：**
+        ```javascript
+        const eventSource = new EventSource(
+          '/api/chat/stream?conversationId=1&content=你好'
+        );
+        eventSource.addEventListener('token', (e) => {
+          const data = JSON.parse(e.data);
+          // 追加 data.content 到消息气泡
+        });
+        eventSource.addEventListener('done', (e) => {
+          const data = JSON.parse(e.data);
+          eventSource.close();
+        });
+        eventSource.addEventListener('error', (e) => {
+          const data = JSON.parse(e.data);
+          // 显示错误提示
+          eventSource.close();
+        });
+        ```
+      operationId: streamChatMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: query
+          description: "对话 ID（为空则新建对话）"
+          required: false
+          schema:
+            type: integer
+            format: int64
+            nullable: true
+          example: 1
+        - name: content
+          in: query
+          description: 用户消息内容（需经 URL 编码）
+          required: true
+          schema:
+            type: string
+          example: "请解释 Java 中的 volatile 关键字"
+      responses:
+        "200":
+          description: SSE 流式响应
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE 事件流
+              example: |
+                event: token
+                data: {"content": "volatile 是"}
+
+                event: token
+                data: {"content": "Java 提供的"}
+
+                event: token
+                data: {"content": "一种轻量级同步机制..."}
+
+                event: done
+                data: {"conversationId": 1}
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /chat/conversations:
+    get:
+      tags:
+        - 02-智能对话
+      summary: 获取对话列表
+      description: 获取当前用户的所有历史对话列表，按最后更新时间倒序排列。
+      operationId: listConversations
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Conversation"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  - id: 3
+                    title: "Spring Boot 配置问题"
+                    createdAt: "2026-07-30T14:00:00Z"
+                    updatedAt: "2026-07-30T14:30:00Z"
+                  - id: 2
+                    title: "Java 并发编程问题"
+                    createdAt: "2026-07-30T10:00:00Z"
+                    updatedAt: "2026-07-30T11:30:00Z"
+                  - id: 1
+                    title: "Vue 3 响应式原理"
+                    createdAt: "2026-07-29T09:00:00Z"
+                    updatedAt: "2026-07-29T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /chat/{conversationId}/messages:
+    get:
+      tags:
+        - 02-智能对话
+      summary: 获取历史消息
+      description: 获取指定对话的全部历史消息，按发送时间正序排列。
+      operationId: getConversationMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          description: 对话 ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ChatMessage"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  - id: 1
+                    role: "user"
+                    content: "请解释 Java 中的 volatile 关键字"
+                    createdAt: "2026-07-30T10:00:00Z"
+                  - id: 2
+                    role: "assistant"
+                    content: "volatile 是 Java 提供的一种轻量级同步机制..."
+                    createdAt: "2026-07-30T10:00:05Z"
+                  - id: 3
+                    role: "user"
+                    content: "和 synchronized 有什么区别？"
+                    createdAt: "2026-07-30T10:01:00Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: 对话不存在或无权访问
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 404
+                message: "对话不存在"
+                data: null
+
+  /chat/{conversationId}:
+    delete:
+      tags:
+        - 02-智能对话
+      summary: 删除对话
+      description: 删除指定的对话及其所有消息记录。操作不可逆。
+      operationId: deleteConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          description: 对话 ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                code: 200
+                message: "success"
+                data: null
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: 对话不存在或无权访问
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 404
+                message: "对话不存在"
+                data: null
+
+  # ==================== 知识库模块 ====================
+  /knowledge/list:
+    get:
+      tags:
+        - 03-RAG 知识库
+      summary: 文档列表
+      description: 获取当前用户上传的所有知识库文档列表，按上传时间倒序排列。
+      operationId: listKnowledgeDocuments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: 页码（从 1 开始）
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: pageSize
+          in: query
+          description: 每页记录数
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PaginatedData"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  records:
+                    - id: 2
+                      title: "Spring AI 入门指南"
+                      fileName: "spring-ai-guide.pdf"
+                      fileType: "pdf"
+                      fileSize: 2048576
+                      status: "ready"
+                      errorMsg: null
+                      createdAt: "2026-07-30T14:00:00Z"
+                    - id: 1
+                      title: "Java 基础笔记"
+                      fileName: "java-notes.md"
+                      fileType: "md"
+                      fileSize: 102400
+                      status: "ready"
+                      errorMsg: null
+                      createdAt: "2026-07-29T09:00:00Z"
+                  total: 2
+                  page: 1
+                  pageSize: 20
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /knowledge/upload:
+    post:
+      tags:
+        - 03-RAG 知识库
+      summary: 上传文档
+      description: |
+        上传学习文档到知识库。上传成功后后端将异步执行以下步骤：
+
+        1. Apache Tika 解析文档文本内容
+        2. 文本分块（Chunking）
+        3. 调用 Embedding API 生成向量
+        4. 向量 + 元数据存入 pgvector
+        5. 更新文档状态为 `ready`
+
+        **限制条件：**
+        - 支持格式：PDF（`application/pdf`）、Markdown（`text/markdown`）
+        - 文件大小限制：≤ 20MB
+      operationId: uploadKnowledgeDocument
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 待上传的文档文件（PDF 或 Markdown）
+              required:
+                - file
+      responses:
+        "200":
+          description: 上传成功，返回文档信息（初始状态为 `processing`）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/KnowledgeDocument"
+              example:
+                code: 200
+                message: "success"
+                data:
+                  id: 3
+                  title: null
+                  fileName: "spring-ai-guide.pdf"
+                  fileType: "pdf"
+                  fileSize: 2048576
+                  status: "processing"
+                  errorMsg: null
+                  createdAt: "2026-07-30T15:00:00Z"
+        "400":
+          description: "文件格式不支持或超过大小限制"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 400
+                message: "不支持的文件类型，仅支持 PDF 和 Markdown 格式"
+                data: null
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /knowledge/{id}:
+    delete:
+      tags:
+        - 03-RAG 知识库
+      summary: 删除文档
+      description: 删除指定的知识库文档，同时清除该文档对应的向量数据。操作不可逆。
+      operationId: deleteKnowledgeDocument
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 文档 ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                code: 200
+                message: "success"
+                data: null
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: 文档不存在或无权访问
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 404
+                message: "文档不存在"
+                data: null
+
+# =====================================================================
+# 全局响应定义
+# =====================================================================
+responses:
+  UnauthorizedError:
+    description: 未授权 — Token 缺失、无效或已过期
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/ErrorResponse"
+        example:
+          code: 401
+          message: "未授权，请重新登录"
+          data: null
+
+# =====================================================================
+# 标签定义
+# =====================================================================
+tags:
+  - name: 01-用户认证
+    description: 用户注册、登录、个人信息管理
+  - name: 02-智能对话
+    description: 多轮连续对话、SSE 流式输出、对话历史管理
+  - name: 03-RAG 知识库
+    description: 文档上传解析、知识库管理、基于知识库的精准问答

@@ -1,3 +1,37 @@
 spring:
   application:
     name: knowflow-web
+
+  # 数据源配置
+  datasource:
+    url: jdbc:postgresql://localhost:5432/knowflow
+    username: admin
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+
+# JWT 配置
+jwt:
+  secret: "KnowFlow-Secure-JWT-Secret-Key-2026-Must-Be-At-Least-256-Bits-Long!!"
+  expiration-ms: 604800000  # 7 天（单位：毫秒）
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# SpringDoc OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  packages-to-scan: com.cloudtheon.knowflowweb

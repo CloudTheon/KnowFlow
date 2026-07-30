@@ -36,7 +36,7 @@
 
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+            <artifactId>mybatis-plus</artifactId>
         </dependency>
 
         <dependency>
@@ -44,21 +44,20 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
+        <!-- JWT -->
         <dependency>
-            <groupId>com.pgvector</groupId>
-            <artifactId>pgvector-java</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
         </dependency>
-
-        <!-- Spring AI 核心 -->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-core</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
         </dependency>
-
-        <!-- Spring AI PostgreSQL Vector Store -->
         <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-postgresql-vector-store</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

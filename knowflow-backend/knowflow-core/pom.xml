@@ -18,6 +18,18 @@
             <groupId>com.knowflow</groupId>
             <artifactId>knowflow-infrastructure</artifactId>
         </dependency>
+
+        <!-- Jakarta Bean Validation（用于 @NotBlank / @Size 等） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Swagger 注解（用于 @Schema） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

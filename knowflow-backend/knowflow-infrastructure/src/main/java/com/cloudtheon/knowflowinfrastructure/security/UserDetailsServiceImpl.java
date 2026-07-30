@@ -1,5 +1,6 @@
 package com.cloudtheon.knowflowinfrastructure.security;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cloudtheon.knowflowinfrastructure.entity.User;
 import com.cloudtheon.knowflowinfrastructure.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userMapper.selectOne(
-                com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
-                        .lambdaQuery(User.class)
+                new LambdaQueryWrapper<User>()
                         .eq(User::getUsername, username));
 
         if (user == null) {

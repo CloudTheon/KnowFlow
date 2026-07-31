@@ -34,6 +34,14 @@ export interface ChatMessage {
   createdAt?: string
 }
 
+/** 对话 */
+export interface Conversation {
+  id: number
+  title: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 /** 知识库文档 */
 export interface KnowledgeDocument {
   id: number

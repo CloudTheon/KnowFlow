@@ -59,4 +59,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+
+    /**
+     * 允许在异步分发（SSE 等）时也执行本过滤器。
+     * <p>
+     * 默认 OncePerRequestFilter 会跳过 async dispatch，导致 SSE 异步线程中
+     * SecurityContext 为空，授权检查抛 AuthorizationDeniedException。
+     * 重写此方法让 async dispatch 时也重新解析 token 并设置 SecurityContext。
+     * </p>
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
 }

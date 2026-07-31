@@ -1,0 +1,50 @@
+# ============================================================================
+# 开发环境配置（application-dev.yaml）
+# 为主配置中声明的 ${ENV} 提供开发环境的具体值
+# ============================================================================
+
+spring:
+  # 数据源配置（本地 PostgreSQL）
+  datasource:
+    url: jdbc:postgresql://localhost:5432/knowflow
+    username: admin
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+
+  # Redis 配置（本地 Redis，对话上下文缓存）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+
+  # Spring AI：OpenAI 兼容接口（支持 gpt / DeepSeek / Qwen 等平台）
+  ai:
+    openai:
+      api-key: ${DEEPSEEK_API_KEY}
+      base-url: https://api.deepseek.com
+      chat:
+        model: deepseek-v4-flash
+        temperature: 0.7
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT 配置（开发密钥）
+jwt:
+  secret: "KnowFlow-Secure-JWT-Secret-Key-2026-Must-Be-At-Least-256-Bits-Long!!"
+  expiration-ms: 604800000  # 7 天（单位：毫秒）
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0

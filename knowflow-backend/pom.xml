@@ -59,6 +59,15 @@
     <!-- ==================== 依赖版本管理（BOM） ==================== -->
     <dependencyManagement>
         <dependencies>
+            <!-- Spring AI BOM：统一管理所有 Spring AI 依赖版本 -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- ====== 子模块间依赖（用于版本统一） ====== -->
             <dependency>
                 <groupId>com.knowflow</groupId>
@@ -174,6 +183,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- ==================== 仓库配置 ==================== -->
+    <!-- 阿里云镜像可能未及时同步 Spring AI，添加 Maven Central 直连作为后备 -->
+    <repositories>
+        <repository>
+            <id>central-direct</id>
+            <name>Maven Central Direct</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <!-- ==================== 构建插件管理 ==================== -->
     <build>

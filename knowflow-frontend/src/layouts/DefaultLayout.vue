@@ -1,5 +1,5 @@
 <template>
-  <t-layout>
+  <t-layout class="root-layout">
     <!-- 侧边栏 -->
     <t-aside>
       <div class="logo-area">
@@ -24,7 +24,7 @@
     </t-aside>
 
     <!-- 主内容区 -->
-    <t-layout>
+    <t-layout class="inner-layout">
       <t-content>
         <router-view />
       </t-content>
@@ -55,8 +55,17 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.t-layout {
+.root-layout {
   height: 100vh;
+  overflow: hidden;
+}
+
+.inner-layout {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .t-aside {
@@ -64,6 +73,18 @@ function handleLogout() {
   flex-direction: column;
   background: var(--td-bg-color-component);
   border-right: 1px solid var(--td-border-level-1-color);
+}
+
+/* TDesign 的 t-content 组件根元素 class 是 .t-layout__content，需穿透 scoped */
+:deep(.t-layout__content) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: var(--td-bg-color-page);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .logo-area {
@@ -90,11 +111,5 @@ function handleLogout() {
   border-top: 1px solid var(--td-border-level-1-color);
   display: flex;
   justify-content: center;
-}
-
-.t-content {
-  padding: 24px;
-  background: var(--td-bg-color-page);
-  min-height: 100vh;
 }
 </style>

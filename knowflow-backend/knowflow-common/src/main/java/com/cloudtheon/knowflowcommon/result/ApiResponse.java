@@ -1,6 +1,5 @@
 package com.cloudtheon.knowflowcommon.result;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 /**
@@ -9,7 +8,6 @@ import lombok.Data;
  * @param <T> 响应数据类型
  */
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
     private int code;

@@ -45,6 +45,12 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
+        <!-- Spring AI：OpenAI 模型（兼容各平台 OpenAI 接口） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

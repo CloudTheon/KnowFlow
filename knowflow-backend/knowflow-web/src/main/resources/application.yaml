@@ -1,29 +1,54 @@
-server:
-  port: 8080
-  servlet:
-    context-path: /api
+# ============================================================================
+# KnowFlow 主配置文件
+# 所有配置项在此声明，值全部通过 ${ENV} 从环境变量注入，不写默认值
+# 各环境的具体值请在 application-{env}.yaml 中提供
+# ============================================================================
 
 spring:
+  # 激活的环境（部署时通过 SPRING_PROFILES_ACTIVE 指定，如 prod）
+  profiles:
+    active: dev
   application:
     name: knowflow-web
 
   # 数据源配置
   datasource:
-    url: jdbc:postgresql://localhost:5432/knowflow
-    username: admin
-    password: 123456
-    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: ${DB_DRIVER}
+
+  # Redis 配置（对话上下文缓存）
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      database: ${REDIS_DATABASE}
+
+  # Spring AI：OpenAI 兼容接口（支持 gpt / DeepSeek / Qwen 等平台）
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL}
+      chat:
+        model: ${OPENAI_CHAT_MODEL}
+        temperature: ${OPENAI_TEMPERATURE}
+
+server:
+  port: ${SERVER_PORT}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH}
 
 # JWT 配置
 jwt:
-  secret: "KnowFlow-Secure-JWT-Secret-Key-2026-Must-Be-At-Least-256-Bits-Long!!"
-  expiration-ms: 604800000  # 7 天（单位：毫秒）
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS}  # 单位：毫秒
 
 # MyBatis-Plus 配置
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ${MYBATIS_LOG_IMPL}
   global-config:
     db-config:
       id-type: auto

@@ -15,6 +15,13 @@ export const useUserStore = defineStore('user', () => {
     loggedIn.value = true
   }
 
+  async function register(username: string, password: string) {
+    const res = await userApi.register(username, password)
+    setToken(res.data.token)
+    user.value = res.data.user
+    loggedIn.value = true
+  }
+
   async function fetchProfile() {
     const res = await userApi.profile()
     user.value = res.data
@@ -27,5 +34,5 @@ export const useUserStore = defineStore('user', () => {
     loggedIn.value = false
   }
 
-  return { user, loggedIn, login, fetchProfile, logout }
+  return { user, loggedIn, login, register, fetchProfile, logout }
 })

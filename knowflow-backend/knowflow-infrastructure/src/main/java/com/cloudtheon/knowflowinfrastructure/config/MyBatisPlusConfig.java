@@ -2,15 +2,18 @@ package com.cloudtheon.knowflowinfrastructure.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDateTime;
 
 /**
- * MyBatis-Plus 自动填充配置
- * 自动处理 createdAt 和 updatedAt 字段
+ * MyBatis-Plus 配置
+ * 1. 自动填充 createdAt / updatedAt 字段
+ * 2. 扫描 Mapper 接口（Mapper 在 knowflow-infrastructure 模块，与主启动类不同包，需显式指定）
  */
 @Configuration
+@MapperScan("com.cloudtheon.knowflowinfrastructure.mapper")
 public class MyBatisPlusConfig implements MetaObjectHandler {
 
     @Override

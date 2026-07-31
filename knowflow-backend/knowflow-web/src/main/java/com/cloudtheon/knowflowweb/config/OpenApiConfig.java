@@ -31,7 +31,7 @@ public class OpenApiConfig {
                         .title("KnowFlow — 智能学习助手平台 API")
                         .description("""
                                 KnowFlow 是一个基于 Spring AI 2.0 与 RAG（检索增强生成）技术的全栈智能学习助手平台。
-                                                                
+                                
                                 ### 核心功能
                                 - **用户管理**：注册、登录、个人信息获取
                                 - **智能对话**：多轮连续对话、SSE 流式输出、对话历史管理

@@ -45,9 +45,11 @@ export interface Conversation {
 /** 知识库文档 */
 export interface KnowledgeDocument {
   id: number
-  title: string
+  title?: string | null
   fileName: string
   fileType: string
-  createdAt: string
+  fileSize: number
   status: 'processing' | 'ready' | 'failed'
+  errorMsg?: string | null
+  createdAt: string
 }

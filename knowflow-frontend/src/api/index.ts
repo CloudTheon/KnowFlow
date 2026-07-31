@@ -1,6 +1,13 @@
 import { get, post, del } from '@/utils/request'
 import { getToken } from '@/utils/auth'
-import type { ApiResponse, ChatMessage, Conversation, KnowledgeDocument, UserInfo } from '@/types'
+import type {
+  ApiResponse,
+  ChatMessage,
+  Conversation,
+  KnowledgeDocument,
+  PaginatedData,
+  UserInfo,
+} from '@/types'
 
 /** ======== 用户 ======== */
 export const userApi = {
@@ -101,9 +108,11 @@ export const chatApi = {
 
 /** ======== 知识库 ======== */
 export const knowledgeApi = {
-  list() {
-    return get<KnowledgeDocument[]>('/knowledge/list')
+  /** 分页获取文档列表 */
+  list(page = 1, pageSize = 20) {
+    return get<PaginatedData<KnowledgeDocument>>('/knowledge/list', { params: { page, pageSize } })
   },
+  /** 上传文档 */
   upload(file: File) {
     const formData = new FormData()
     formData.append('file', file)
@@ -111,7 +120,8 @@ export const knowledgeApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  /** 删除文档 */
   delete(id: number) {
-    return post<void>(`/knowledge/${id}/delete`)
+    return del<void>(`/knowledge/${id}`)
   },
 }

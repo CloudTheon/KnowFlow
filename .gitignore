@@ -43,3 +43,9 @@ desktop.ini
 # ============ 其它 ============
 *.hprof
 logs/
+
+# ============ 本地模型与缓存（不入库） ============
+# 本地 Embedding 模型文件（用户自行放置，如 knowflow-backend/models/）
+**/models/
+# 运行时下载缓存 / 临时数据
+**/data/

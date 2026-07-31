@@ -1,56 +1,96 @@
 <template>
   <t-layout class="root-layout">
-    <!-- 侧边栏 -->
-    <t-aside>
-      <div class="logo-area">
+    <!-- 顶部导航栏 -->
+    <t-header>
+      <div class="header-inner">
         <span class="logo-text">KnowFlow</span>
-      </div>
-      <t-menu :value="activeMenu" :collapsed="false" @change="handleMenuChange">
-        <t-menu-item value="chat">
-          <template #icon><chat-icon /></template>
-          智能对话
-        </t-menu-item>
-        <t-menu-item value="knowledge">
-          <template #icon><book-icon /></template>
-          知识库
-        </t-menu-item>
-      </t-menu>
 
-      <div class="user-area">
-        <t-button variant="text" shape="square" @click="handleLogout">
-          <template #icon><logout-icon /></template>
-        </t-button>
+        <!-- 平行导航按钮 -->
+        <div class="nav-buttons">
+          <t-button
+            variant="text"
+            class="nav-btn"
+            :class="{ active: route.name === 'Chat' }"
+            @click="router.push({ name: 'Chat' })"
+          >
+            <template #icon><chat-icon /></template>
+            智能对话
+          </t-button>
+          <t-button
+            variant="text"
+            class="nav-btn"
+            :class="{ active: route.name === 'Knowledge' }"
+            @click="router.push({ name: 'Knowledge' })"
+          >
+            <template #icon><book-icon /></template>
+            知识库
+          </t-button>
+        </div>
+
+        <!-- 用户菜单 -->
+        <t-dropdown trigger="click" placement="bottom-right" :options="dropdownOptions" @click="handleDropdownClick">
+          <div class="user-trigger">
+            <t-avatar
+              class="user-avatar"
+              size="32px"
+              :image="avatarUrl"
+              @image-failed="handleAvatarFailed"
+            >
+              {{ avatarText }}
+            </t-avatar>
+            <span class="user-name">{{ userStore.user?.username }}</span>
+            <t-icon name="more" size="18px" />
+          </div>
+        </t-dropdown>
       </div>
-    </t-aside>
+    </t-header>
 
     <!-- 主内容区 -->
-    <t-layout class="inner-layout">
-      <t-content>
-        <router-view />
-      </t-content>
-    </t-layout>
+    <t-content>
+      <router-view />
+    </t-content>
   </t-layout>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatIcon, BookIcon, LogoutIcon } from 'tdesign-icons-vue-next'
+import { ChatIcon, BookIcon } from 'tdesign-icons-vue-next'
+import type { DropdownOption } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeMenu = computed(() => route.name as string)
+/** 用户下拉菜单选项 */
+const dropdownOptions: DropdownOption[] = [
+  { content: '系统设置', value: 'settings' },
+  { content: '帮助与反馈', value: 'help' },
+  { content: '退出登录', value: 'logout' },
+]
 
-function handleMenuChange(value: string) {
-  router.push({ name: value })
+/** 头像加载失败时回退为用户名首字母 */
+const avatarFailed = ref(false)
+
+const avatarText = computed(() => {
+  const name = userStore.user?.username ?? ''
+  return name ? name.charAt(0).toUpperCase() : '?'
+})
+
+const avatarUrl = computed(() =>
+  avatarFailed.value ? '' : (userStore.user?.avatar ?? ''),
+)
+
+function handleAvatarFailed() {
+  avatarFailed.value = true
 }
 
-function handleLogout() {
-  userStore.logout()
-  router.push({ name: 'Login' })
+function handleDropdownClick(option: DropdownOption) {
+  if (option.value === 'logout') {
+    userStore.logout()
+    router.push({ name: 'Login' })
+  }
 }
 </script>
 
@@ -60,22 +100,85 @@ function handleLogout() {
   overflow: hidden;
 }
 
-.inner-layout {
+/* 顶部导航栏 */
+:deep(.t-layout__header) {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--td-border-level-1-color);
+  background: var(--td-bg-color-container);
+}
+
+.header-inner {
   flex: 1;
   min-width: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 32px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--td-brand-color);
+  white-space: nowrap;
+}
+
+.nav-buttons {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--td-radius-default);
+  color: var(--td-text-color-primary);
+  white-space: nowrap;
+}
+
+.nav-btn.active {
+  color: var(--td-brand-color);
+  background: var(--td-brand-color-light);
+  font-weight: 600;
+}
+
+/* 用户菜单 */
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--td-radius-default);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.user-trigger:hover {
+  background: var(--td-bg-color-container-hover);
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  background: var(--td-brand-color);
+  color: #fff;
+  font-weight: 600;
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--td-text-color-primary);
+  white-space: nowrap;
+  max-width: 120px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  text-overflow: ellipsis;
 }
 
-.t-aside {
-  display: flex;
-  flex-direction: column;
-  background: var(--td-bg-color-component);
-  border-right: 1px solid var(--td-border-level-1-color);
-}
-
-/* TDesign 的 t-content 组件根元素 class 是 .t-layout__content，需穿透 scoped */
+/* 内容区（TDesign t-content 根元素 class 是 .t-layout__content） */
 :deep(.t-layout__content) {
   flex: 1;
   min-height: 0;
@@ -85,31 +188,5 @@ function handleLogout() {
   background: var(--td-bg-color-page);
   overflow: hidden;
   box-sizing: border-box;
-}
-
-.logo-area {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid var(--td-border-level-1-color);
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--td-brand-color);
-}
-
-.t-menu {
-  flex: 1;
-  border-right: none;
-}
-
-.user-area {
-  padding: 12px;
-  border-top: 1px solid var(--td-border-level-1-color);
-  display: flex;
-  justify-content: center;
 }
 </style>

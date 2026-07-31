@@ -277,3 +277,10 @@ function toChatMessages(list: ChatMessage[]): ChatMessagesData[] {
   height: 100%;
 }
 </style>
+
+<!-- 定制 t-chatbot 内部留白（Web Component 需用 ::part，非 scoped） -->
+<style>
+.chat-bot::part(t-chat) {
+  padding: 24px;
+}
+</style>

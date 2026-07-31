@@ -6,6 +6,7 @@ import com.cloudtheon.knowflowcommon.result.ResultCode;
 import com.cloudtheon.knowflowcore.dto.ChatStream;
 import com.cloudtheon.knowflowcore.dto.SendMessageRequest;
 import com.cloudtheon.knowflowcore.service.ChatService;
+import com.cloudtheon.knowflowcore.service.KnowledgeService;
 import com.cloudtheon.knowflowcore.vo.ChatMessageVO;
 import com.cloudtheon.knowflowcore.vo.ConversationVO;
 import com.cloudtheon.knowflowinfrastructure.entity.Conversation;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -40,22 +42,28 @@ public class ChatServiceImpl implements ChatService {
     private static final String SYSTEM_PROMPT = """
             你是一个专业的编程学习助手，帮助用户解决编程问题、解释技术概念、提供学习建议。
             回答要准确、清晰、有条理，尽量给出代码示例。
+            当提供了「知识库参考内容」时：
+            - 如果用户的问题与参考内容相关，请优先基于参考内容回答，并可在回答中说明依据；
+            - 如果参考内容与问题无关，请忽略参考内容，正常回答。
             """;
 
     private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
     private final ChatClient chatClient;
     private final RedisChatMemory chatMemory;
+    private final KnowledgeService knowledgeService;
 
     public ChatServiceImpl(
             ConversationMapper conversationMapper,
             MessageMapper messageMapper,
             ChatClient chatClient,
-            RedisChatMemory chatMemory) {
+            RedisChatMemory chatMemory,
+            KnowledgeService knowledgeService) {
         this.conversationMapper = conversationMapper;
         this.messageMapper = messageMapper;
         this.chatClient = chatClient;
         this.chatMemory = chatMemory;
+        this.knowledgeService = knowledgeService;
     }
 
     // ==================== 非流式对话 ====================
@@ -67,11 +75,11 @@ public class ChatServiceImpl implements ChatService {
         // 持久化用户消息
         saveMessage(conversation.getId(), "user", req.getContent());
 
-        // 调用 AI（MessageChatMemoryAdvisor 自动注入该会话历史上下文）
+        // 调用 AI（MessageChatMemoryAdvisor 自动注入该会话历史上下文，RAG 检索知识库）
         String aiContent;
         try {
             aiContent = chatClient.prompt()
-                    .system(SYSTEM_PROMPT)
+                    .system(buildSystemPrompt(userId, req.getContent()))
                     .user(req.getContent())
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, String.valueOf(conversation.getId())))
                     .call()
@@ -96,10 +104,10 @@ public class ChatServiceImpl implements ChatService {
         // 持久化用户消息
         saveMessage(conversation.getId(), "user", content);
 
-        // 流式调用 AI（Advisor 自动注入上下文）
+        // 流式调用 AI（Advisor 自动注入上下文，RAG 检索知识库）
         StringBuilder fullReply = new StringBuilder();
         Flux<String> contentFlux = chatClient.prompt()
-                .system(SYSTEM_PROMPT)
+                .system(buildSystemPrompt(userId, content))
                 .user(content)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, String.valueOf(conversation.getId())))
                 .stream()
@@ -151,6 +159,27 @@ public class ChatServiceImpl implements ChatService {
     }
 
     // ==================== 私有方法 ====================
+
+    /**
+     * 构建系统提示词：基础提示 + RAG 知识库检索到的相关片段
+     */
+    private String buildSystemPrompt(Long userId, String userContent) {
+        StringBuilder sb = new StringBuilder(SYSTEM_PROMPT);
+        try {
+            List<Document> docs = knowledgeService.search(userId, userContent, 5);
+            if (docs != null && !docs.isEmpty()) {
+                sb.append("\n\n# 知识库参考内容\n");
+                sb.append("以下内容来自用户的知识库文档：\n");
+                for (int i = 0; i < docs.size(); i++) {
+                    sb.append("\n【片段 ").append(i + 1).append("】").append(docs.get(i).getText()).append("\n");
+                }
+            }
+        } catch (Exception e) {
+            // 检索失败不影响正常对话
+            log.warn("知识库检索失败，忽略 RAG 上下文: {}", e.getMessage());
+        }
+        return sb.toString();
+    }
 
     /**
      * 解析对话：已存在则返回，否则创建新对话

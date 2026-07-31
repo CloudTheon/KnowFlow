@@ -11,6 +11,11 @@ spring:
   application:
     name: knowflow-web
 
+  # 排除 PgVectorStore 自动配置：改用手动懒加载 VectorStore Bean（避免启动时加载模型阻塞）
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
+
   # 数据源配置
   datasource:
     url: ${DB_URL}
@@ -33,6 +38,23 @@ spring:
       chat:
         model: ${OPENAI_CHAT_MODEL}
         temperature: ${OPENAI_TEMPERATURE}
+
+    # pgvector 向量存储（RAG 知识库检索）
+    vectorstore:
+      pgvector:
+        dimensions: ${EMBEDDING_DIMENSIONS:512}          # 向量维度，需与 Embedding 模型一致（bge-small-zh-v1.5=512）
+        index-type: ${VECTOR_INDEX_TYPE:HNSW}            # 索引类型：NONE / IVFFLAT / HNSW
+        distance-type: ${VECTOR_DISTANCE_TYPE:COSINE_DISTANCE}  # 距离度量：COSINE_DISTANCE 等
+        schema-validation: true
+
+# 本地 Embedding 模型（ONNX 本地推理，无需外部 API）
+# 默认使用 bge-small-zh-v1.5（中文优化，512 维），模型文件在 knowflow-web/src/main/resources/models/bge-small-zh-v1.5/ 下
+# 可通过环境变量/配置改为其他模型路径（支持 file:、classpath:、http(s): 前缀）
+knowflow:
+  embedding:
+    model-uri: ${EMBEDDING_MODEL_URI:classpath:models/bge-small-zh-v1.5/model.onnx}
+    tokenizer-uri: ${EMBEDDING_TOKENIZER_URI:classpath:models/bge-small-zh-v1.5/tokenizer.json}
+    cache-dir: ${EMBEDDING_CACHE_DIR:./data/embedding-cache}
 
 server:
   port: ${SERVER_PORT}

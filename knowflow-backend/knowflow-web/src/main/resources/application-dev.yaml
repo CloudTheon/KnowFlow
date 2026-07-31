@@ -18,14 +18,30 @@ spring:
       port: 6379
       database: 0
 
-  # Spring AI：OpenAI 兼容接口（支持 gpt / DeepSeek / Qwen 等平台）
+  # Spring AI：OpenAI 兼容接口（Chat 对话）
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY}
-      base-url: https://api.deepseek.com
+      api-key: llama
+      base-url: http://localhost:8081
       chat:
-        model: deepseek-v4-flash
+        model: Qwen2.5-7B-Q4KM
         temperature: 0.7
+
+    # pgvector 向量存储（RAG 知识库检索，维度需与 Embedding 模型一致）
+    vectorstore:
+      pgvector:
+        dimensions: 512
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        schema-validation: true
+
+# 本地 Embedding 模型（ONNX 本地推理，无需外部 API）
+# 使用 bge-small-zh-v1.5（中文优化，512 维），模型文件在 knowflow-web/src/main/resources/models/bge-small-zh-v1.5/ 下
+knowflow:
+  embedding:
+    model-uri: classpath:models/bge-small-zh-v1.5/model.onnx
+    tokenizer-uri: classpath:models/bge-small-zh-v1.5/tokenizer.json
+    cache-dir: ./data/embedding-cache
 
 server:
   port: 8080

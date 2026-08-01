@@ -136,7 +136,43 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_docs_created_at ON knowledge_docs (user
 CREATE INDEX IF NOT EXISTS idx_knowledge_docs_status ON knowledge_docs (status) WHERE status = 'processing';
 
 -- ============================================================================
--- 5. 向量存储表 (vector_store)
+-- 5. 用户反馈表 (feedback)
+--    存储用户提交的问题反馈 / 功能建议
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS feedback (
+    id          BIGSERIAL       PRIMARY KEY,
+    user_id     BIGINT          NOT NULL,
+    type        VARCHAR(20)     NOT NULL,       -- bug / suggestion / other
+    content     TEXT            NOT NULL,       -- 反馈内容
+    contact     VARCHAR(100),                   -- 联系方式（可选）
+    status      VARCHAR(20)     NOT NULL DEFAULT 'pending',  -- pending / processing / resolved
+    created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_feedback_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE,
+    CONSTRAINT ck_feedback_type
+        CHECK (type IN ('bug', 'suggestion', 'other')),
+    CONSTRAINT ck_feedback_status
+        CHECK (status IN ('pending', 'processing', 'resolved'))
+);
+
+COMMENT ON TABLE  feedback        IS '用户反馈表';
+COMMENT ON COLUMN feedback.id          IS '主键 ID';
+COMMENT ON COLUMN feedback.user_id     IS '所属用户 ID';
+COMMENT ON COLUMN feedback.type        IS '反馈类型（bug=问题反馈, suggestion=功能建议, other=其他）';
+COMMENT ON COLUMN feedback.content     IS '反馈内容';
+COMMENT ON COLUMN feedback.contact     IS '联系方式';
+COMMENT ON COLUMN feedback.status      IS '处理状态（pending=待处理, processing=处理中, resolved=已解决）';
+COMMENT ON COLUMN feedback.created_at  IS '提交时间';
+
+-- 按用户查询反馈列表
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback (user_id);
+-- 反馈列表按提交时间倒序
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback (user_id, created_at DESC);
+
+-- ============================================================================
+-- 6. 向量存储表 (vector_store)
 --    由 Spring AI 的 PgVectorStore 自动管理建表，以下定义仅供参考。
 --    实际表结构由 Spring AI 运行时自动创建，无需手动执行。
 -- ============================================================================
@@ -155,7 +191,7 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_docs_status ON knowledge_docs (status) 
 --     WITH (lists = 100);
 
 -- ============================================================================
--- 6. 自动更新 updated_at 的触发器函数
+-- 7. 自动更新 updated_at 的触发器函数
 --    用于 users 和 conversations 表的 updated_at 字段自动更新
 -- ============================================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -181,11 +217,11 @@ CREATE TRIGGER trg_conversations_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- 7. 初始化完成日志
+-- 8. 初始化完成日志
 -- ============================================================================
 DO $$
 BEGIN
     RAISE NOTICE 'KnowFlow 数据库初始化完成 ✅';
-    RAISE NOTICE '  已创建表: users, conversations, messages, knowledge_docs';
+    RAISE NOTICE '  已创建表: users, conversations, messages, knowledge_docs, feedback';
     RAISE NOTICE '  数据库: PostgreSQL 16 + pgvector';
 END $$;

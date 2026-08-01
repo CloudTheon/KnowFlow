@@ -22,6 +22,7 @@ public enum ResultCode {
     USERNAME_EXISTS(40001, "用户名已存在"),
     USERNAME_OR_PASSWORD_ERROR(40002, "用户名或密码错误"),
     USER_NOT_FOUND(40003, "用户不存在"),
+    OLD_PASSWORD_ERROR(40004, "原密码错误"),
     TOKEN_EXPIRED(40010, "Token 已过期"),
     TOKEN_INVALID(40011, "Token 无效"),
     FILE_TYPE_NOT_SUPPORTED(40100, "不支持的文件类型，仅支持 PDF 和 Markdown 格式"),

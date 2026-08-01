@@ -4,8 +4,11 @@ import com.cloudtheon.knowflowcommon.result.ApiResponse;
 import com.cloudtheon.knowflowcore.dto.LoginRequest;
 import com.cloudtheon.knowflowcore.dto.LoginResponse;
 import com.cloudtheon.knowflowcore.dto.RegisterRequest;
+import com.cloudtheon.knowflowcore.dto.UpdatePasswordRequest;
+import com.cloudtheon.knowflowcore.dto.UpdateProfileRequest;
 import com.cloudtheon.knowflowcore.service.UserService;
 import com.cloudtheon.knowflowcore.vo.UserInfoVO;
+import com.cloudtheon.knowflowinfrastructure.security.LoginUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 用户认证控制器
  */
-@Tag(name = "01-用户认证", description = "用户注册、登录、个人信息管理")
+@Tag(name = "01-用户认证", description = "用户注册、登录、个人信息管理、系统设置")
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -44,5 +47,22 @@ public class AuthController {
     public ApiResponse<UserInfoVO> profile(@AuthenticationPrincipal UserDetails userDetails) {
         UserInfoVO userInfo = userService.getUserProfile(userDetails.getUsername());
         return ApiResponse.success(userInfo);
+    }
+
+    @Operation(summary = "更新个人资料", description = "更新当前用户的头像等资料")
+    @PutMapping("/profile")
+    public ApiResponse<UserInfoVO> updateProfile(
+            @AuthenticationPrincipal LoginUser loginUser,
+            @Valid @RequestBody UpdateProfileRequest req) {
+        return ApiResponse.success(userService.updateProfile(loginUser.getUserId(), req));
+    }
+
+    @Operation(summary = "修改密码", description = "校验原密码后更新密码")
+    @PutMapping("/password")
+    public ApiResponse<Void> updatePassword(
+            @AuthenticationPrincipal LoginUser loginUser,
+            @Valid @RequestBody UpdatePasswordRequest req) {
+        userService.updatePassword(loginUser.getUserId(), req);
+        return ApiResponse.success();
     }
 }

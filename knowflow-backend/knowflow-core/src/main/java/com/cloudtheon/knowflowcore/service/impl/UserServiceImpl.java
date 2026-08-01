@@ -5,6 +5,8 @@ import com.cloudtheon.knowflowcommon.result.ResultCode;
 import com.cloudtheon.knowflowcore.dto.LoginRequest;
 import com.cloudtheon.knowflowcore.dto.LoginResponse;
 import com.cloudtheon.knowflowcore.dto.RegisterRequest;
+import com.cloudtheon.knowflowcore.dto.UpdatePasswordRequest;
+import com.cloudtheon.knowflowcore.dto.UpdateProfileRequest;
 import com.cloudtheon.knowflowcore.service.UserService;
 import com.cloudtheon.knowflowcore.vo.UserInfoVO;
 import com.cloudtheon.knowflowinfrastructure.entity.User;
@@ -80,5 +82,31 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
         return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+    }
+
+    @Override
+    public UserInfoVO updateProfile(Long userId, UpdateProfileRequest req) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        user.setAvatar(req.getAvatar());
+        userMapper.updateById(user);
+        return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+    }
+
+    @Override
+    public void updatePassword(Long userId, UpdatePasswordRequest req) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        // 校验原密码
+        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
+            throw new BusinessException(ResultCode.OLD_PASSWORD_ERROR);
+        }
+        // 更新新密码
+        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
+        userMapper.updateById(user);
     }
 }

@@ -19,6 +19,7 @@ spring:
       database: 0
 
   # Spring AI：OpenAI 兼容接口（Chat 对话）
+  # 注意：API Key 通过环境变量 DEEPSEEK_API_KEY 注入，严禁硬编码到配置文件
   ai:
     openai:
       api-key: ${DEEPSEEK_API_KEY}

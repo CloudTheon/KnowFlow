@@ -19,13 +19,14 @@ spring:
       database: 0
 
   # Spring AI：OpenAI 兼容接口（Chat 对话）
-  # 注意：API Key 通过环境变量 DEEPSEEK_API_KEY 注入，严禁硬编码到配置文件
+  # 本地 llama.cpp 推理（免费，无需云端 API），llama.cpp server 监听 8081
+  # 如需切换云端 DeepSeek：api-key 用环境变量 ${DEEPSEEK_API_KEY}，base-url https://api.deepseek.com
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY}
-      base-url: https://api.deepseek.com
+      api-key: llama
+      base-url: http://localhost:8081
       chat:
-        model: deepseek-v4-flash
+        model: Qwen2.5-7B-Q4KM
         temperature: 0.7
 
     # pgvector 向量存储（RAG 知识库检索，维度需与 Embedding 模型一致）

@@ -1,6 +1,8 @@
 # ============================================================================
-# 开发环境配置（application-dev.yaml）
-# 为主配置中声明的 ${ENV} 提供开发环境的具体值
+# 开发环境配置模板
+# 使用方法：复制本文件为 application-dev.yaml 并按需填写后使用。
+# 注意：application-dev.yaml 已被 .gitignore 忽略，不会提交到仓库；
+#      本模板（.example）不包含任何真实密钥/密码。
 # ============================================================================
 
 spring:
@@ -8,10 +10,10 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/knowflow
     username: admin
-    password: 123456
+    password: ${POSTGRES_PASSWORD:123456}   # 本地开发库密码，建议用环境变量注入
     driver-class-name: org.postgresql.Driver
 
-  # Redis 配置（本地 Redis，对话上下文缓存）
+  # Redis 配置（对话上下文缓存）
   data:
     redis:
       host: localhost
@@ -19,15 +21,20 @@ spring:
       database: 0
 
   # Spring AI：OpenAI 兼容接口（Chat 对话）
-  # 本地 llama.cpp 推理（免费，无需云端 API），llama.cpp server 监听 8081
-  # 如需切换云端 DeepSeek：api-key 用环境变量 ${DEEPSEEK_API_KEY}，base-url https://api.deepseek.com
+  # 本地模式：base-url 指向本地 llama.cpp；云端模式：base-url 指向 DeepSeek/OpenAI
   ai:
     openai:
+      # 本地 llama.cpp 填 llama；云端 DeepSeek 填 ${DEEPSEEK_API_KEY}（禁止硬编码）
       api-key: llama
-      base-url: http://localhost:8081
+      base-url: http://localhost:8081        # 本地: http://localhost:8081 ；云端: https://api.deepseek.com
       chat:
+        # 本地: Qwen2.5-7B-Q4KM ；云端: deepseek-v4-flash / deepseek-v4-pro
         model: Qwen2.5-7B-Q4KM
         temperature: 0.7
+        # 云端 DeepSeek 若想省钱，可关闭思考模式（默认开启会放大 token 消耗）：
+        # options:
+        #   thinking:
+        #     type: disabled
 
     # pgvector 向量存储（RAG 知识库检索，维度需与 Embedding 模型一致）
     vectorstore:
@@ -50,9 +57,9 @@ server:
   servlet:
     context-path: /api
 
-# JWT 配置（开发密钥）
+# JWT 配置（生产环境务必通过环境变量注入，勿使用默认值）
 jwt:
-  secret: "KnowFlow-Secure-JWT-Secret-Key-2026-Must-Be-At-Least-256-Bits-Long!!"
+  secret: ${JWT_SECRET:KnowFlow-Dev-Only-Secret-Change-Me}
   expiration-ms: 604800000  # 7 天（单位：毫秒）
 
 # MyBatis-Plus 配置

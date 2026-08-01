@@ -34,6 +34,8 @@ target/
 .env.*.local
 *.pem
 *.key
+# 本地开发配置（含数据库密码等敏感信息），不入库；使用 application-dev.yaml.example 模板
+**/application-dev*.yaml
 
 # ============ 操作系统 ============
 .DS_Store

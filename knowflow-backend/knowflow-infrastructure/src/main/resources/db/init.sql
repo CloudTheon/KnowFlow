@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     username    VARCHAR(50)     NOT NULL,
     password    VARCHAR(255)    NOT NULL,       -- BCrypt 加密后的密码
     avatar      VARCHAR(500),                   -- 头像 URL
+    role        VARCHAR(20)     NOT NULL DEFAULT 'user',   -- admin / user
+    status      VARCHAR(20)     NOT NULL DEFAULT 'enabled', -- enabled / disabled
     created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
 
@@ -27,6 +29,8 @@ COMMENT ON COLUMN users.id       IS '主键 ID';
 COMMENT ON COLUMN users.username IS '用户名（唯一）';
 COMMENT ON COLUMN users.password IS 'BCrypt 加密密码';
 COMMENT ON COLUMN users.avatar   IS '头像 URL';
+COMMENT ON COLUMN users.role     IS '角色（admin=管理员, user=普通用户）';
+COMMENT ON COLUMN users.status   IS '状态（enabled=正常, disabled=禁用）';
 COMMENT ON COLUMN users.created_at IS '创建时间';
 COMMENT ON COLUMN users.updated_at IS '更新时间';
 

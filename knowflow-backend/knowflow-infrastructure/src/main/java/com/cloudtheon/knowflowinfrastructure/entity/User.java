@@ -21,6 +21,12 @@ public class User {
 
     private String avatar;
 
+    /** 角色：admin / user */
+    private String role;
+
+    /** 状态：enabled / disabled */
+    private String status;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

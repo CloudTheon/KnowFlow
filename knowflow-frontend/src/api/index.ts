@@ -1,9 +1,10 @@
-import { get, post, del } from '@/utils/request'
+import { get, post, put, del } from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import type {
   ApiResponse,
   ChatMessage,
   Conversation,
+  Feedback,
   KnowledgeDocument,
   PaginatedData,
   UserInfo,
@@ -19,6 +20,26 @@ export const userApi = {
   },
   profile() {
     return get<UserInfo>('/auth/profile')
+  },
+  /** 更新个人资料（头像） */
+  updateProfile(avatar: string) {
+    return put<UserInfo>('/auth/profile', { avatar })
+  },
+  /** 修改密码 */
+  updatePassword(oldPassword: string, newPassword: string) {
+    return put<void>('/auth/password', { oldPassword, newPassword })
+  },
+}
+
+/** ======== 帮助与反馈 ======== */
+export const feedbackApi = {
+  /** 提交反馈 */
+  submit(data: { type: string; content: string; contact?: string }) {
+    return post<Feedback>('/feedback', data)
+  },
+  /** 我的反馈列表 */
+  mine(page = 1, pageSize = 10) {
+    return get<PaginatedData<Feedback>>('/feedback/mine', { params: { page, pageSize } })
   },
 }
 

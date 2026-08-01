@@ -49,6 +49,10 @@
     <t-content>
       <router-view />
     </t-content>
+
+    <!-- 系统设置 / 帮助与反馈弹窗 -->
+    <SettingsDialog v-model:visible="settingsVisible" @saved="handleSettingsSaved" />
+    <FeedbackDialog v-model:visible="helpVisible" />
   </t-layout>
 </template>
 
@@ -58,6 +62,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ChatIcon, BookIcon } from 'tdesign-icons-vue-next'
 import type { DropdownOption } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
+import SettingsDialog from '@/components/SettingsDialog.vue'
+import FeedbackDialog from '@/components/FeedbackDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,6 +75,10 @@ const dropdownOptions: DropdownOption[] = [
   { content: '帮助与反馈', value: 'help' },
   { content: '退出登录', value: 'logout' },
 ]
+
+/** 弹窗显隐 */
+const settingsVisible = ref(false)
+const helpVisible = ref(false)
 
 /** 头像加载失败时回退为用户名首字母 */
 const avatarFailed = ref(false)
@@ -87,9 +97,22 @@ function handleAvatarFailed() {
 }
 
 function handleDropdownClick(option: DropdownOption) {
-  if (option.value === 'logout') {
+  if (option.value === 'settings') {
+    settingsVisible.value = true
+  } else if (option.value === 'help') {
+    helpVisible.value = true
+  } else if (option.value === 'logout') {
     userStore.logout()
     router.push({ name: 'Login' })
+  }
+}
+
+/** 设置保存后刷新用户信息 */
+async function handleSettingsSaved() {
+  try {
+    await userStore.fetchProfile()
+  } catch {
+    // 忽略刷新失败
   }
 }
 </script>

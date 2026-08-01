@@ -26,6 +26,16 @@ export interface UserInfo {
   avatar?: string
 }
 
+/** 用户反馈 */
+export interface Feedback {
+  id: number
+  type: 'bug' | 'suggestion' | 'other'
+  content: string
+  contact?: string
+  status: 'pending' | 'processing' | 'resolved'
+  createdAt: string
+}
+
 /** 对话消息 */
 export interface ChatMessage {
   id?: number

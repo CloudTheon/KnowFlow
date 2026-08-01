@@ -434,6 +434,82 @@ components:
         - status
         - createdAt
 
+    # ---------- Agent 智能体 ----------
+    AgentTaskRequest:
+      type: object
+      description: Agent 任务请求
+      properties:
+        content:
+          type: string
+          description: 任务描述
+          example: "帮我制定一个 3 个月的 Java 进阶学习路线"
+        mode:
+          type: string
+          description: "任务模式：general=通用多步任务 / learning-path=学习路径规划"
+          enum:
+            - general
+            - learning-path
+          default: general
+      required:
+        - content
+
+    AgentTaskResponse:
+      type: object
+      description: Agent 任务响应
+      properties:
+        result:
+          type: string
+          description: 任务执行结果（Markdown 格式）
+          example: "## 第一阶段：基础入门..."
+
+    # ---------- 系统管理 ----------
+    UpdateUserStatusRequest:
+      type: object
+      description: 更新用户状态请求
+      properties:
+        status:
+          type: string
+          description: "状态：enabled=启用 / disabled=禁用"
+          enum:
+            - enabled
+            - disabled
+          example: "disabled"
+      required:
+        - status
+
+    AdminUserVO:
+      type: object
+      description: 后台用户信息
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 用户 ID
+          example: 1
+        username:
+          type: string
+          description: 用户名
+          example: "zhangsan"
+        role:
+          type: string
+          description: "角色（admin=管理员, user=普通用户）"
+          example: "user"
+        status:
+          type: string
+          description: "状态（enabled=正常, disabled=禁用）"
+          example: "enabled"
+        createdAt:
+          type: string
+          format: date-time
+          description: 注册时间
+          example: "2026-08-01T10:00:00Z"
+      required:
+        - id
+        - username
+        - role
+        - status
+        - createdAt
+
     # ---------- 错误响应 ----------
     ErrorResponse:
       type: object
@@ -1173,6 +1249,208 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedError"
 
+  # ==================== Agent 智能体 ====================
+  /agent/task:
+    post:
+      tags:
+        - 05-Agent 智能体
+      summary: 执行 Agent 任务
+      description: |
+        ReAct 模式执行多步骤任务（可调用代码执行 / Web 搜索工具）。
+        支持两种模式：general=通用多步任务、learning-path=学习路径规划。
+      operationId: runAgentTask
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentTaskRequest"
+      responses:
+        "200":
+          description: 任务执行完成
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AgentTaskResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  # ==================== 系统管理（管理员） ====================
+  /admin/overview:
+    get:
+      tags:
+        - 06-系统管理
+      summary: 平台数据概览
+      description: 统计用户数 / 对话数 / 文档数 / 反馈数（仅管理员）。
+      operationId: adminOverview
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 统计成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userCount:
+                            type: integer
+                          conversationCount:
+                            type: integer
+                          documentCount:
+                            type: integer
+                          feedbackCount:
+                            type: integer
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: 无权限（非管理员）
+
+  /admin/users:
+    get:
+      tags:
+        - 06-系统管理
+      summary: 用户列表
+      description: 分页查询所有用户，支持用户名模糊搜索（仅管理员）。
+      operationId: adminListUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: keyword
+          in: query
+          required: false
+          description: 用户名模糊搜索
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PaginatedData"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /admin/users/{id}/status:
+    put:
+      tags:
+        - 06-系统管理
+      summary: 启用/禁用用户
+      description: 设置用户状态（enabled/disabled），不能操作自己（仅管理员）。
+      operationId: adminUpdateUserStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 目标用户 ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserStatusRequest"
+      responses:
+        "200":
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: 无权限（非管理员）
+
+  /admin/config:
+    get:
+      tags:
+        - 06-系统管理
+      summary: 获取系统配置
+      description: 读取系统配置（存储于 Redis，仅管理员）。
+      operationId: adminGetConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties:
+                          type: string
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    put:
+      tags:
+        - 06-系统管理
+      summary: 更新系统配置
+      description: 写入/更新系统配置键值对（存储于 Redis，仅管理员）。
+      operationId: adminUpdateConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+              example:
+                siteName: KnowFlow
+                notice: 欢迎使用
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
 # =====================================================================
 # 全局响应定义
 # =====================================================================
@@ -1200,3 +1478,7 @@ tags:
     description: 文档上传解析、知识库管理、基于知识库的精准问答
   - name: 04-帮助与反馈
     description: 用户反馈提交与查询
+  - name: 05-Agent 智能体
+    description: 多步骤任务自主规划、学习路径生成（可调用代码执行 / Web 搜索工具）
+  - name: 06-系统管理
+    description: 平台数据概览、用户管理、系统配置（仅管理员）

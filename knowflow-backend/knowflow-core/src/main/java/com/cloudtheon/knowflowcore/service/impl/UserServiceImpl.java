@@ -41,12 +41,14 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setUsername(req.getUsername());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setRole("user");
+        user.setStatus("enabled");
 
         userMapper.insert(user);
 
         // 生成 Token
         String token = jwtProvider.generateToken(user.getId(), user.getUsername());
-        UserInfoVO userInfo = new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+        UserInfoVO userInfo = new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar(), user.getRole());
 
         return new LoginResponse(token, userInfo);
     }
@@ -66,9 +68,14 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ResultCode.USERNAME_OR_PASSWORD_ERROR);
         }
 
+        // 校验账号状态
+        if ("disabled".equals(user.getStatus())) {
+            throw new BusinessException(ResultCode.USER_DISABLED);
+        }
+
         // 生成 Token
         String token = jwtProvider.generateToken(user.getId(), user.getUsername());
-        UserInfoVO userInfo = new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+        UserInfoVO userInfo = new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar(), user.getRole());
 
         return new LoginResponse(token, userInfo);
     }
@@ -81,7 +88,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
-        return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+        return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar(), user.getRole());
     }
 
     @Override
@@ -92,7 +99,7 @@ public class UserServiceImpl implements UserService {
         }
         user.setAvatar(req.getAvatar());
         userMapper.updateById(user);
-        return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar());
+        return new UserInfoVO(user.getId(), user.getUsername(), user.getAvatar(), user.getRole());
     }
 
     @Override

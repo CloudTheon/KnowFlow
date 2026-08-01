@@ -20,4 +20,7 @@ public class UserInfoVO {
 
     @Schema(description = "头像 URL", example = "https://example.com/avatar.png")
     private String avatar;
+
+    @Schema(description = "角色（admin/user）", example = "user")
+    private String role;
 }

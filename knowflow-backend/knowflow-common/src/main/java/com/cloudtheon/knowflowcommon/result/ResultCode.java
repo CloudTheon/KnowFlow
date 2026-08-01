@@ -25,6 +25,7 @@ public enum ResultCode {
     OLD_PASSWORD_ERROR(40004, "原密码错误"),
     TOKEN_EXPIRED(40010, "Token 已过期"),
     TOKEN_INVALID(40011, "Token 无效"),
+    USER_DISABLED(40012, "账号已被禁用，请联系管理员"),
     FILE_TYPE_NOT_SUPPORTED(40100, "不支持的文件类型，仅支持 PDF 和 Markdown 格式"),
     FILE_SIZE_EXCEEDED(40101, "文件大小超过限制"),
     CONVERSATION_NOT_FOUND(40200, "对话不存在"),

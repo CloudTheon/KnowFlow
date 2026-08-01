@@ -25,6 +25,25 @@
             <template #icon><book-icon /></template>
             知识库
           </t-button>
+          <t-button
+            variant="text"
+            class="nav-btn"
+            :class="{ active: route.name === 'Agent' }"
+            @click="router.push({ name: 'Agent' })"
+          >
+            <template #icon><robot-icon /></template>
+            智能体
+          </t-button>
+          <t-button
+            v-if="isAdmin"
+            variant="text"
+            class="nav-btn"
+            :class="{ active: route.name === 'Admin' }"
+            @click="router.push({ name: 'Admin' })"
+          >
+            <template #icon><setting-icon /></template>
+            系统管理
+          </t-button>
         </div>
 
         <!-- 用户菜单 -->
@@ -59,7 +78,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatIcon, BookIcon } from 'tdesign-icons-vue-next'
+import { ChatIcon, BookIcon, RobotIcon, SettingIcon } from 'tdesign-icons-vue-next'
 import type { DropdownOption } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import SettingsDialog from '@/components/SettingsDialog.vue'
@@ -79,6 +98,9 @@ const dropdownOptions: DropdownOption[] = [
 /** 弹窗显隐 */
 const settingsVisible = ref(false)
 const helpVisible = ref(false)
+
+/** 是否为管理员（控制「系统管理」入口显隐） */
+const isAdmin = computed(() => userStore.user?.role === 'admin')
 
 /** 头像加载失败时回退为用户名首字母 */
 const avatarFailed = ref(false)

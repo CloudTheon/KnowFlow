@@ -1,6 +1,8 @@
 import { get, post, put, del } from '@/utils/request'
 import { getToken } from '@/utils/auth'
 import type {
+  AdminOverview,
+  AdminUser,
   ApiResponse,
   ChatMessage,
   Conversation,
@@ -40,6 +42,38 @@ export const feedbackApi = {
   /** 我的反馈列表 */
   mine(page = 1, pageSize = 10) {
     return get<PaginatedData<Feedback>>('/feedback/mine', { params: { page, pageSize } })
+  },
+}
+
+/** ======== Agent 智能体 ======== */
+export const agentApi = {
+  /** 执行 Agent 任务（general / learning-path） */
+  task(content: string, mode = 'general') {
+    return post<{ result: string }>('/agent/task', { content, mode })
+  },
+}
+
+/** ======== 系统管理（管理员） ======== */
+export const adminApi = {
+  /** 平台数据概览 */
+  overview() {
+    return get<AdminOverview>('/admin/overview')
+  },
+  /** 用户列表 */
+  users(page = 1, pageSize = 10, keyword?: string) {
+    return get<PaginatedData<AdminUser>>('/admin/users', { params: { page, pageSize, keyword } })
+  },
+  /** 启用/禁用用户 */
+  updateUserStatus(id: number, status: string) {
+    return put<void>(`/admin/users/${id}/status`, { status })
+  },
+  /** 获取系统配置 */
+  getConfig() {
+    return get<Record<string, string>>('/admin/config')
+  },
+  /** 更新系统配置 */
+  updateConfig(config: Record<string, string>) {
+    return put<void>('/admin/config', config)
   },
 }
 

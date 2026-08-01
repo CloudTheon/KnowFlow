@@ -21,10 +21,10 @@ spring:
   # Spring AI：OpenAI 兼容接口（Chat 对话）
   ai:
     openai:
-      api-key: llama
-      base-url: http://localhost:8081
+      api-key: ${DEEPSEEK_API_KEY}
+      base-url: https://api.deepseek.com
       chat:
-        model: Qwen2.5-7B-Q4KM
+        model: deepseek-v4-flash
         temperature: 0.7
 
     # pgvector 向量存储（RAG 知识库检索，维度需与 Embedding 模型一致）

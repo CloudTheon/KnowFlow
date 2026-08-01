@@ -24,6 +24,24 @@ export interface UserInfo {
   id: number
   username: string
   avatar?: string
+  role?: string
+}
+
+/** 后台用户信息 */
+export interface AdminUser {
+  id: number
+  username: string
+  role: 'admin' | 'user'
+  status: 'enabled' | 'disabled'
+  createdAt: string
+}
+
+/** 后台数据概览 */
+export interface AdminOverview {
+  userCount: number
+  conversationCount: number
+  documentCount: number
+  feedbackCount: number
 }
 
 /** 用户反馈 */

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isAuthenticated } from '@/utils/auth'
+import { useUserStore } from '@/stores/user'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
 const router = createRouter({
@@ -22,6 +23,18 @@ const router = createRouter({
           component: () => import('@/views/Knowledge.vue'),
           meta: { title: '知识库' },
         },
+        {
+          path: 'agent',
+          name: 'Agent',
+          component: () => import('@/views/Agent.vue'),
+          meta: { title: '智能体' },
+        },
+        {
+          path: 'admin',
+          name: 'Admin',
+          component: () => import('@/views/Admin.vue'),
+          meta: { title: '系统管理', requiresAdmin: true },
+        },
       ],
     },
     {
@@ -33,10 +46,24 @@ const router = createRouter({
   ],
 })
 
-// 路由守卫：未登录跳转登录页
-router.beforeEach((to) => {
+// 路由守卫：未登录跳转登录页；非管理员禁止访问管理页
+router.beforeEach(async (to) => {
   if (to.name !== 'Login' && !isAuthenticated()) {
     return { name: 'Login' }
+  }
+  if (to.meta.requiresAdmin) {
+    const userStore = useUserStore()
+    // 刷新页面后 store 中无用户信息，先拉取一次
+    if (!userStore.user) {
+      try {
+        await userStore.fetchProfile()
+      } catch {
+        // token 失效等情况由请求层统一处理
+      }
+    }
+    if (userStore.user?.role !== 'admin') {
+      return { name: 'Chat' }
+    }
   }
 })
 
